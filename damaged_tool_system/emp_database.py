@@ -1,30 +1,62 @@
-# Create the database file for employees
-conn_empdb = sqlite3.connect("employee.db")
+import sqlite3
+from db_context_manager import DatabaseConnection, DatabaseCursor
+from utils import fetch_record
+from tkinter import messagebox
 
-# Create the cursor that interacts with the database and execute sql cmds
-c = conn.cursor()
-
-# c.execute("""CREATE TABLE employees (
-#             emp_num integer,
-#             emp_name text,
-#             emp_mc text
-#             )""")
-
-# # These can be plugged in as emp for testing
-# emp_1 = Employee(110217, 'Tester1', 'Okuma')
-# emp_2 = Employee(110216, 'Tester2', 'Mazak')
+# Use this in main.py to add users to the employee database
 
 
-def create_emp(emp):
-    with conn_empdb:
-        c.execute("INSERT INTO employees VALUES (:emp_num, :emp_name, :emp_mc)",
-                  {'emp_num':emp.emp_num, 'emp_name': emp.emp_name, 'emp_mc': emp.emp_mc})
+def add_employee_db(created_user_info):
+    with DatabaseConnection("employee.db") as conn:
+        with DatabaseCursor(conn) as c:
+
+            # Check if the employee already exists in the database
+            c.execute("SELECT * FROM employees WHERE emp_num = :emp_num", {'emp_num': created_user_info[0]})
+            result = c.fetchone()
+
+            # If the employee is not in the database, insert the employee
+            if result is None:
+                c.execute(
+                    "INSERT INTO employees VALUES (:emp_num, :emp_name, :emp_mc)",
+                    {'emp_num': created_user_info[0], 'emp_name': created_user_info[1], 'emp_mc': created_user_info[2]}
+                )
+
+                print("Employee Added")
+
+            else:
+                messagebox.showerror(
+                    title="ERROR: Database",
+                    message="User already present in database.\nIf issue persist, see System Administrator."
+                )
+
+            conn.commit()
+
+# Use this to create the table for the user database
 
 
-# c.execute("SELECT * FROM employees WHERE emp_mc=:emp_mc", {'emp_mc': 'Okuma'})
+def create_employees_table():
+    with DatabaseConnection("employee.db") as conn:
+        with DatabaseCursor(conn) as c:
+            c.execute("""CREATE TABLE IF NOT EXISTS employees (
+                            emp_num INTEGER PRIMARY KEY,
+                            emp_name TEXT,
+                            emp_mc TEXT
+                        )""")
+        conn.commit()
 
-# Commit the changes to the database
-conn_empdb.commit()
+# Used to check for specific records of the employee data
 
-# Close connection to the database
-conn_empdb.close()
+
+def emp_db_check(employee_num):
+
+    employee_num = created_user_info[0]
+    database_name = "employee.db"
+    table_name = "employees"
+    primary_key_column = "emp_num"
+
+    added_emp = fetch_record(database_name, table_name, primary_key_column, employee_num)
+
+    if added_emp:
+        print(f"Employee {added_emp[1]} with employee number{added_emp[0]} was added to the database.")
+    else:
+        print(f"Employee number {employee_num} not in database.")
