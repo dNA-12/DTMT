@@ -1,10 +1,16 @@
-# DTMT
-An application created to manage and track damaged tooling within a machining faucility. Damaged Tooling Management and Tracking. The goal of this application is create a database to track damaged tooling within a machine shop and send valuable data and insight on said tooling to an engineering department for further investigation. 
-UNDER DEVELOPMENT.
+Added Features:
+Context Manager:
+Used to create key features of navigation and functionality for all databases included DTMT. In this version of DTMT, it's functionality is currently limited to just the employee data. However, by design, the objects classed in this file can and will be applied to all other databases here forward. i.e the Tooling Database.
 
-# Application Make-up
-DTMT uses Tkinter to render a simple display to a user and allows them to input their employee information and enter the damaged tooling into the database. 
+utils.py Fetch All Function:
+fetch_all_records is a function used in the current state of development to review the database during testing, it will be used later apply certain elements of the specific databases to different data analysis functions.
 
-The two main databases, in this stage of development, use SQLite3. Currently, two main databases are being engineered - Employee and Damaged Tooling
+emp_database.py:
+Total overhaul of the database file as I learn more effective ways of database management. Now this file is used to store functions that directly interact with the created database. Before, the file was attempting to house and manipulate the employee database outside of the main.py. This has several obvious pitfalls and needed correctly promptly before moving further in the application.
 
-Later in development, matplotlib will be used to display tooling information in a human readable manner to the engineering department. As will Pandas for further data manipulation and analysis. All this infomation should come from the Employee and Damaged Tooling Databases.
+What's Next
+Further Debugging
+The register page a number of small bugs that need ironed out along with a few within that database. These are minor and not considered a major issues, they will be adjusted accordingly.
+
+Login Screen Functionality
+The next major component of this application will be the functionality of the login page, which will function quite similarly to the register page with less features and moving components.
