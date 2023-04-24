@@ -1,6 +1,12 @@
 import tkinter as tk
-from tkinter import messagebox, simpledialog
-from utils import fetch_machines
+from tkinter import messagebox
+from utils import fetch_machines, fetch_all_records
+import sqlite3
+from emp_database import add_employee_db, create_employees_table
+
+# Create Database tables
+
+create_employees_table()
 
 
 # Main Application / Display Main Screen / Sets Title / Controls What Frame a User Sees
@@ -112,7 +118,7 @@ class RegisterScreen(tk.Frame):
 
             if machine == "-----":
                 messagebox.showerror(
-                    title="Machine Select",
+                    title="ERROR: Machine Select",
                     message="Please select a valid machine from the drop down menu."
                 )
 
@@ -123,14 +129,38 @@ class RegisterScreen(tk.Frame):
 
             if not unfulfilled_number and not unfulfilled_name:
 
-                messagebox.showinfo(
-                    title = "Success",
+                user_response = messagebox.askyesno(
+                    title = "Validate Credentials",
                     message =
                     f"Employee Number: {emp_num}\nEmployee Name: {emp_name}\nEmployee Machine: {machine}\n"
-                    f"Employee added to DTMT Database!"
+                    f"Employee will be added to DTMT Database!\n"
+                    "If this information is correct, press 'Yes'. If you want to make changes, press 'No'."
                 )
 
-                ####
+                if user_response:
+                    add_employee_db(created_user_info)
+                    messagebox.showinfo(
+                        title="Success",
+                        message="User successfully created!\nYou will be returned to the Login Screen now."
+                    )
+
+                    # Return to Login Screen
+                    controller.show_frame(LoginScreen)
+
+                    # Display UPDATED Database
+                    all_emp_records = fetch_all_records("employee.db", "employees")
+                    for record in all_emp_records:
+                        print(record)
+
+                else:
+
+                    # Display CURRENT Database
+                    all_emp_records = fetch_all_records("employee.db", "employees")
+
+                    for record in all_emp_records:
+                        print(record)
+
+                    return
 
             else:
 
@@ -192,6 +222,13 @@ class RegisterScreen(tk.Frame):
         # Back Button --> LoginScreen
         back_button = tk.Button(self, text="Back", command=lambda: controller.show_frame(LoginScreen))
         back_button.grid(row=5, column=0, columnspan=2, pady=(5, 10))
+
+# USE TO SEE employee.db
+
+
+# all_emp_records = fetch_all_records("employee.db", "employees")
+# for record in all_emp_records:
+#     print(record)
 
 
 if __name__ == "__main__":
