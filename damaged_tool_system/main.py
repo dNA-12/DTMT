@@ -1,8 +1,8 @@
 import tkinter as tk
 from tkinter import messagebox
-from utils import fetch_machines, fetch_all_records
-import sqlite3
+
 from emp_database import add_employee_db, create_employees_table
+from utils import fetch_machines, fetch_all_records, clear_database
 
 # Create Database tables
 
@@ -19,14 +19,14 @@ class MainApp(tk.Tk):
         self.state("zoomed")
 
         container = tk.Frame(self)
-        container.pack(side = "top", fill="both", expand = True)
+        container.pack(side="top", fill="both", expand=True)
 
         self.frames = {}
 
         for F in (LoginScreen, RegisterScreen):
             frame = F(container, self)
             self.frames[F] = frame
-            frame.grid(row = 0, column = 0, sticky = "nsew")
+            frame.grid(row=0, column=0, sticky="nsew")
 
         self.show_frame(LoginScreen)
 
@@ -110,8 +110,8 @@ class RegisterScreen(tk.Frame):
 
                 messagebox.showerror(
                     title="ERROR: Employee Name",
-                    message= "Name fields should not be longer than 10 letters.\n"
-                             "Only user letters for these fields."
+                    message="Name fields should not be longer than 10 letters.\n"
+                            "Only user letters for these fields."
                 )
 
                 return
@@ -130,42 +130,35 @@ class RegisterScreen(tk.Frame):
             if not unfulfilled_number and not unfulfilled_name:
 
                 user_response = messagebox.askyesno(
-                    title = "Validate Credentials",
-                    message =
+                    title="Validate Credentials",
+                    message=
                     f"Employee Number: {emp_num}\nEmployee Name: {emp_name}\nEmployee Machine: {machine}\n"
                     f"Employee will be added to DTMT Database!\n"
                     "If this information is correct, press 'Yes'. If you want to make changes, press 'No'."
                 )
 
                 if user_response:
-                    add_employee_db(created_user_info)
-                    messagebox.showinfo(
-                        title="Success",
-                        message="User successfully created!\nYou will be returned to the Login Screen now."
-                    )
+                    if add_employee_db(created_user_info) is True:
+                        controller.show_frame(LoginScreen)
+                    else:
 
-                    # Return to Login Screen
-                    controller.show_frame(LoginScreen)
+                        # Display CURRENT Database
+                        all_emp_records = fetch_all_records("employee.db", "employees")
+
+                        for record in all_emp_records:
+                            print(record)
+
+                        return
 
                     # Display UPDATED Database
                     all_emp_records = fetch_all_records("employee.db", "employees")
                     for record in all_emp_records:
                         print(record)
 
-                else:
-
-                    # Display CURRENT Database
-                    all_emp_records = fetch_all_records("employee.db", "employees")
-
-                    for record in all_emp_records:
-                        print(record)
-
-                    return
-
             else:
 
                 messagebox.showerror(
-                    title = "SYSTEM ERROR",
+                    title="SYSTEM ERROR",
                     message=
                     "Please make sure there are no numbers in your name"
                     " and your Employee Number is formatted correctly.\n"
@@ -223,13 +216,8 @@ class RegisterScreen(tk.Frame):
         back_button = tk.Button(self, text="Back", command=lambda: controller.show_frame(LoginScreen))
         back_button.grid(row=5, column=0, columnspan=2, pady=(5, 10))
 
-# USE TO SEE employee.db
-
-
-# all_emp_records = fetch_all_records("employee.db", "employees")
-# for record in all_emp_records:
-#     print(record)
-
+# DATABASE CLEAR !!!
+# clear_database("employee.db", "employees")
 
 if __name__ == "__main__":
     app = MainApp()
