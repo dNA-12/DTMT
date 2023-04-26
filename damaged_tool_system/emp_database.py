@@ -20,16 +20,24 @@ def add_employee_db(created_user_info):
                     "INSERT INTO employees VALUES (:emp_num, :emp_name, :emp_mc)",
                     {'emp_num': created_user_info[0], 'emp_name': created_user_info[1], 'emp_mc': created_user_info[2]}
                 )
+                messagebox.showinfo(
+                    title="Success",
+                    message="User successfully created!\nYou will be returned to the Login Screen now."
+                )
 
                 print("Employee Added")
+                conn.commit()
+                return True
 
             else:
+
                 messagebox.showerror(
                     title="ERROR: Database",
                     message="User already present in database.\nIf issue persist, see System Administrator."
                 )
+                return False
+    return
 
-            conn.commit()
 
 # Use this to create the table for the user database
 
