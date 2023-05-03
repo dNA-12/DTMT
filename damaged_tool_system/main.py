@@ -1,12 +1,15 @@
 import tkinter as tk
-from tkinter import messagebox
-
-from emp_database import add_employee_db, create_employees_table
-from utils import fetch_machines, fetch_all_records, clear_database
+import os
+import datetime
+from tkinter import messagebox, ttk
+from emp_database import add_employee_db, create_employees_table, check_for_emp, fetch_employee_name
+from tool_database import add_tool_db, create_tool_table
+from utils import fetch_machines, fetch_all_records, clear_database, create_searchable_dropdown
 
 # Create Database tables
 
 create_employees_table()
+create_tool_table()
 
 
 # Main Application / Display Main Screen / Sets Title / Controls What Frame a User Sees
@@ -20,10 +23,13 @@ class MainApp(tk.Tk):
 
         container = tk.Frame(self)
         container.pack(side="top", fill="both", expand=True)
+        # style = ttk.Style(self)
+        # style.theme_use("clam")
 
         self.frames = {}
+        self.current_user = []
 
-        for F in (LoginScreen, RegisterScreen):
+        for F in (LoginScreen, RegisterScreen, AddToolScreen):
             frame = F(container, self)
             self.frames[F] = frame
             frame.grid(row=0, column=0, sticky="nsew")
@@ -41,10 +47,67 @@ class LoginScreen(tk.Frame):
     def __init__(self, parent, controller):
         super().__init__(parent)
 
-        def submit_form():
+        # Track the current user in the login screen
+
+        current_user = []
+
+        # Create function to submit login entry fields
+
+        def submit_login_form():
             emp_num = emp_number_entry.get()
             machine = selected_machine.get()
-            print(f"Employee Number: {emp_num}\nMachine: {machine}")
+            login_user(emp_num, machine)
+
+        def login_user(emp_num, machine):
+
+            if machine == "----":
+                messagebox.showerror(
+                    title="ERROR: Machine Selection",
+                    message="Please select a machine from the drop down menu."
+                )
+
+                return
+
+            if emp_num[:4] != "0000" or len(emp_num) != 8 or not emp_num.isdigit():
+                messagebox.showerror(
+                    title="ERROR: Employee Number",
+                    message=
+                    "Employee number should start with '0000' Followed by your four unique numbers.\n"
+                    "Only enter numbers into this field."
+                )
+
+                return
+
+            emp_in_database = check_for_emp(emp_num)
+
+            if emp_in_database is True:
+
+                emp_name = fetch_employee_name(emp_num)
+
+                if emp_name:
+
+                    # Update Current User
+                    controller.current_user.append(emp_name)
+                    controller.current_user.append(machine)
+
+                    # Move to Add Tool Screen
+                    controller.show_frame(AddToolScreen)
+
+                    # Clear Login Screen
+                    emp_number_entry.delete(0, tk.END)
+                    selected_machine.set("----")
+
+                    # Display Current User To Console
+                    print(controller.current_user)
+
+                else:
+                    messagebox.showerror(
+                        title="ERROR: SYSTEM ERROR",
+                        message="Please Contact System Administrator."
+                    )
+
+            else:
+                return
 
         # Employee Number
         emp_number_label = tk.Label(self, text="Employee Number:")
@@ -59,14 +122,14 @@ class LoginScreen(tk.Frame):
         # List Machines
         machines_list = fetch_machines()
         selected_machine = tk.StringVar(self)
-        selected_machine.set("Select Machine")  # Default option
+        selected_machine.set("----")  # Default option
 
         # List Machines Dropdown Menu
         machine_dropdown = tk.OptionMenu(self, selected_machine, *machines_list)
         machine_dropdown.grid(row=1, column=1, padx=(5, 10), pady=(5, 10))
 
         # Create login button
-        login_button = tk.Button(self, text="Login", command=submit_form)
+        login_button = tk.Button(self, text="Login", command=submit_login_form)
         login_button.grid(row=2, columnspan=2, pady=(5, 10))
 
         # Create Register button
@@ -79,6 +142,14 @@ class LoginScreen(tk.Frame):
 class RegisterScreen(tk.Frame):
     def __init__(self, parent, controller):
         super().__init__(parent)
+
+        # Used to clear register entries after they have been entered and the user returns to LoginScreen
+
+        def clear_register_entries():
+            emp_number_entry.delete(0, tk.END)
+            emp_name_first_entry.delete(0, tk.END)
+            emp_name_last_entry.delete(0, tk.END)
+            selected_machine.set("-----")
 
         # Used to register user and add them to the employee database
 
@@ -139,6 +210,7 @@ class RegisterScreen(tk.Frame):
 
                 if user_response:
                     if add_employee_db(created_user_info) is True:
+                        clear_register_entries()
                         controller.show_frame(LoginScreen)
                     else:
 
@@ -215,6 +287,192 @@ class RegisterScreen(tk.Frame):
         # Back Button --> LoginScreen
         back_button = tk.Button(self, text="Back", command=lambda: controller.show_frame(LoginScreen))
         back_button.grid(row=5, column=0, columnspan=2, pady=(5, 10))
+
+
+class AddToolScreen(tk.Frame):
+    def __init__(self, parent, controller):
+        super().__init__(parent)
+        self.current_user = controller.current_user
+
+        # Logout Function
+
+        def log_out():
+
+            # Clear Entry Fields
+            tool_num_entry.delete(0, tk.END)
+            part_number_entry.delete(0, tk.END)
+            op_number_entry.delete(0, tk.END)
+            incident_desc_entry_field.delete('1.0', tk.END)
+
+            # Move to Login Screen
+            controller.show_frame(LoginScreen)
+
+            # Clear Current User
+            controller.current_user = []
+
+        # Current Time Function
+
+        def set_current_time(self):
+
+            current_time = datetime.datetime.now().strftime('%I:%M %p')
+            return current_time
+
+        # Damaged Tool Submission
+
+        def submit_tool_data():
+            tool_num = tool_num_entry.get()
+            part_num = part_number_entry.get()
+            op_num = op_number_entry.get()
+            desc = incident_desc_entry_field.get('1.0', 'end')
+            desc = desc.strip()
+
+            validate_tool_data(tool_num, part_num, op_num, desc)
+
+        # Submissions Validation
+
+        def validate_tool_data(tool_num, part_num, op_num, desc):
+            user_entered_details = []
+
+            try:
+
+                tool_num_int = int(tool_num)
+
+                if tool_num_int in tool_numbers:
+
+                    user_entered_details.append(tool_num_int)
+
+                else:
+
+                    raise ValueError
+
+            except ValueError:
+
+                messagebox.showerror(
+                    title="ERROR: Selected Tool Number",
+                    message="Please enter a valid tool number or contact System Administrator."
+                )
+
+            if part_num in part_numbers:
+
+                user_entered_details.append(part_num)
+
+            else:
+
+                messagebox.showerror(
+                    title="ERROR: Selected Part Number",
+                    message="Please enter a valid part number or contact System Administrator."
+                )
+
+            try:
+
+                op_num_int = int(op_num)
+
+                if op_num_int in op_numbers:
+
+                    user_entered_details.append(op_num_int)
+
+                else:
+
+                    raise ValueError
+
+            except ValueError:
+
+                messagebox.showerror(
+                    title="ERROR: Selected Operation Number",
+                    message="Please enter a valid operation number or contact System Administrator."
+                )
+
+            if len(desc) > 20 < 300:
+
+                user_entered_details.append(desc)
+
+            else:
+
+                messagebox.showerror(
+                    title="ERROR: Entered Description",
+                    message=f"Minimum word count: 20\nMaximum word count: 300\nCurrent word count:{len(desc)}\n"
+                            f"Please contact System Administrator if this issue persist."
+                )
+
+            if len(user_entered_details) == 4:
+
+                continue_submission = messagebox.askyesno(
+                    title="Validate Damaged Tool Submission",
+                    message=
+                    f"Tool Number: {tool_num}\nPart Number: {part_num}\nOperation Number: {op_num}\n"
+                    f"Make sure description accurately illustrates the incident that occurred."
+                )
+
+                if continue_submission is True:
+
+                    date_time = set_current_time(self)
+                    add_tool_db(user_entered_details, self.current_user, date_time)
+
+                    messagebox.showinfo(
+                        title="Success",
+                        message="Tool Submitted.\nYou may submit another tool or logout now."
+                    )
+
+                    # Display UPDATED Database
+                    all_tool_records = fetch_all_records("tool.db", "tools")
+                    for record in all_tool_records:
+                        print(record)
+
+                else:
+                    return
+
+            else:
+                messagebox.showerror(
+                    title="ERROR: SYSTEM ERROR",
+                    message="Please review your submitted fields.\nContact System Administrator."
+                )
+
+        # Create Tool Number Menu
+
+        tool_numbers = list(range(1,901))
+        tool_num_entry, tool_listbox, selected_tool =\
+            create_searchable_dropdown(self, tool_numbers, "Enter Tool Number")
+
+        # Create Part Number Menu
+
+        part_numbers_test = 'C:/Users/towma/Desktop/damaged_tool_system/part_numbers_test'
+        part_numbers = [part for part in os.listdir(part_numbers_test)]
+        part_number_entry, part_listbox, selected_part =\
+            create_searchable_dropdown(self,part_numbers, "Enter Part Number")
+
+        # Create Operation Menu
+
+        op_numbers = list(range(0,901,5))
+        op_number_entry, op_listbox, selected_op =\
+            create_searchable_dropdown(self,op_numbers, "Enter Operation Number")
+
+        # Create Description Input Field (text)
+
+        desc_label = tk.Label(self, text="Description of Incident and Section of Program: ")
+        desc_label.pack()
+
+        desc_sub_label = tk.Label(self, text="(include time of incident with description)")
+        desc_sub_label.pack()
+
+        incident_desc_entry_field = tk.Text(self, width=50, height=10)
+        incident_desc_entry_field.pack()
+
+        # Create Damaged Tool Submit Button
+        dam_tool_submit_button = tk.Button(self, text="Submit", command=submit_tool_data)
+        dam_tool_submit_button.pack()
+
+        # Create Logout Button
+        log_out_button = tk.Button(self, text="Logout", command=log_out)
+        log_out_button.pack()
+
+        # All of this should be used to create a TOOL OBJECT that will house:
+        # The employee
+        # Their Selected Machine from login
+        # Part Number
+        # Operation
+        # A frequency at which this tool has been entered into the database
+
+        # OBJECT TO BE USED IN DATA ANALYTICS
 
 # DATABASE CLEAR !!!
 # clear_database("employee.db", "employees")

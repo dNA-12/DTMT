@@ -68,3 +68,38 @@ def emp_db_check(employee_num):
         print(f"Employee {added_emp[1]} with employee number{added_emp[0]} was added to the database.")
     else:
         print(f"Employee number {employee_num} not in database.")
+
+def check_for_emp(emp_num):
+    with DatabaseConnection("employee.db") as conn:
+        with DatabaseCursor(conn) as c:
+
+            # Check if the employee already exists in the database
+            c.execute("SELECT * FROM employees WHERE emp_num = :emp_num", {'emp_num': emp_num})
+            result = c.fetchone()
+
+            if result is None:
+                messagebox.showerror(
+                    title="ERROR: Employee not found",
+                    message="The employee number you entered was not found in the DTMT Database.\n"
+                            "Please try again. If the issue persist,"
+                            " attempt to register this employee number or see System Administrator"
+                )
+                print("Login Failure")
+                return False
+
+            else:
+                print("Login Successful!")
+                return True
+
+
+def fetch_employee_name(emp_num):
+    with DatabaseConnection("employee.db") as conn:
+        with DatabaseCursor(conn) as c:
+
+            c.execute("SELECT emp_name FROM employees WHERE emp_num=?", (emp_num,))
+            emp_name = c.fetchone()
+
+            if emp_name:
+                return emp_name[0]
+            else:
+                print("ERROR: Could not find employee name with passed emp_num!")
