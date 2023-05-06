@@ -3,7 +3,7 @@ import os
 import datetime
 from tkinter import messagebox, ttk
 from emp_database import add_employee_db, create_employees_table, check_for_emp, fetch_employee_name
-from tool_database import add_tool_db, create_tool_table
+from tool_database import add_tool_db, create_tool_table, tool_analytics_search
 from utils import fetch_machines, fetch_all_records, clear_database, create_searchable_dropdown
 
 # Create Database tables
@@ -29,7 +29,7 @@ class MainApp(tk.Tk):
         self.frames = {}
         self.current_user = []
 
-        for F in (LoginScreen, RegisterScreen, AddToolScreen):
+        for F in (LoginScreen, RegisterScreen, AddToolScreen, AdminLoginScreen, DataAnalysisScreen):
             frame = F(container, self)
             self.frames[F] = frame
             frame.grid(row=0, column=0, sticky="nsew")
@@ -135,6 +135,10 @@ class LoginScreen(tk.Frame):
         # Create Register button
         register_user_button = tk.Button(self, text="Register", command=lambda: controller.show_frame(RegisterScreen))
         register_user_button.grid(row=3, columnspan=3, pady=(5, 10))
+
+        # Admin Button
+        admin_button = tk.Button(self, text="Admin Login", command=lambda: controller.show_frame(AdminLoginScreen))
+        admin_button.grid(row=4, columnspan=4, pady=(5,10))
 
 
 # Register Screen / Frame
@@ -314,7 +318,7 @@ class AddToolScreen(tk.Frame):
 
         def set_current_time(self):
 
-            current_time = datetime.datetime.now().strftime('%I:%M %p')
+            current_time = datetime.datetime.now().strftime('%Y-%m-%d %I:%M %p')
             return current_time
 
         # Damaged Tool Submission
@@ -406,7 +410,7 @@ class AddToolScreen(tk.Frame):
                 if continue_submission is True:
 
                     date_time = set_current_time(self)
-                    add_tool_db(user_entered_details, self.current_user, date_time)
+                    add_tool_db(user_entered_details, controller.current_user, date_time)
 
                     messagebox.showinfo(
                         title="Success",
@@ -465,14 +469,266 @@ class AddToolScreen(tk.Frame):
         log_out_button = tk.Button(self, text="Logout", command=log_out)
         log_out_button.pack()
 
-        # All of this should be used to create a TOOL OBJECT that will house:
-        # The employee
-        # Their Selected Machine from login
-        # Part Number
-        # Operation
-        # A frequency at which this tool has been entered into the database
 
-        # OBJECT TO BE USED IN DATA ANALYTICS
+class DataAnalysisScreen(tk.Frame):
+    def __init__(self, parent, controller):
+        super().__init__(parent)
+
+        # Data Search Function
+
+        def data_search():
+
+            if self.data_name == "Tool Data":
+                fetch_tool_data()
+
+            else:
+                messagebox.showerror(
+                    title="ERROR: Data Search",
+                    message="There was an issue searching for the requested data,"
+                            " please make sure the required fields are filled in correctly."
+                )
+
+        # Create function to fetch desired data requirements for TOOL DATA
+
+        def fetch_tool_data():
+
+            part_num = part_number_combobox.get()
+            op_num = op_number_combobox.get()
+            machine = machine_combobox.get()
+            tool_num = tool_number_combobox.get()
+
+            print(f"Part Number: {part_num}")
+            print(f"Operation Number: {op_num}")
+            print(f"Machine: {machine}")
+            print(f"Tool Number: {tool_num}")
+
+            tool_analytics_search(part_num, op_num, machine, tool_num)
+
+        # Create a function to hide and show required fields
+
+        def show_field(show_frame, frames):
+            for frame in frames:
+                frame.grid_remove()
+
+            show_frame.grid(row=8, column=0, padx=5, pady=5, sticky='nw')
+
+        # Create a function to update the required fields
+
+        self.data_name = "Selected Data Type"
+
+        def update_data_name(new_data_name):
+            self.data_name = new_data_name
+            data_fields_label.config(text=f"Enter Required Fields for {self.data_name}")
+
+        # Create Data Frames
+
+        tool_data_frame = tk.Frame(self)
+        part_data_frame = tk.Frame(self)
+        operation_data_frame = tk.Frame(self)
+        machine_data_frame = tk.Frame(self)
+        operator_data_frame = tk.Frame(self)
+
+        self.frames = [
+            tool_data_frame,
+            part_data_frame,
+            operation_data_frame,
+            machine_data_frame,
+            operator_data_frame
+        ]
+
+        # List Tool Numbers
+
+        tool_numbers = list(range(1, 901))
+
+        #List Part Numbers
+
+        part_numbers_test = 'C:/Users/towma/Desktop/damaged_tool_system/part_numbers_test'
+        part_numbers = [part for part in os.listdir(part_numbers_test)]
+
+        # List Operation Numbers
+
+        op_numbers = list(range(0, 901, 5))
+
+        # List Machines
+
+        machines_list = fetch_machines()
+        selected_machine = tk.StringVar(self)
+        selected_machine.set("----")  # Default option
+
+        # Create Data Select Header
+
+        data_select_label = tk.Label(self, text="Select Data to Display", font=("Helvetica", 12, "bold"))
+        data_select_label.grid(row=0, column=0, padx=5, pady=5, sticky='nw')
+
+        # Create Data Field Requirement Header
+
+        data_fields_label = tk.Label(self, text=f"Enter Required Fields for {self.data_name}",
+                                     font=("Helvetica", 12, "bold"))
+        data_fields_label.grid(row=7, column=0, padx=5, pady=5, sticky='nw')
+
+        # Create Data Select Buttons and Fields
+
+        # Tool Data Button
+
+        tool_data_button = tk.Button(
+            self,
+            text="Tool Data",
+            command=lambda: (show_field(self.frames[0], self.frames), update_data_name("Tool Data"))
+        )
+
+        tool_data_button.grid(row=1, column=0, padx=5, pady=5, sticky='nw')
+
+        # Tool Data Fields
+        tool_fields = tk.Frame(tool_data_frame)
+        tk.Label(tool_fields, text="Part Number:").grid(row=0, column=0)
+        part_number_combobox = ttk.Combobox(tool_fields, values=part_numbers)
+        part_number_combobox.grid(row=0, column=1)
+        part_number_combobox.configure(state="normal")
+
+        tk.Label(tool_fields, text="Operation:").grid(row=1, column=0)
+        op_number_combobox = ttk.Combobox(tool_fields, values=op_numbers)
+        op_number_combobox.grid(row=1, column=1)
+        op_number_combobox.configure(state="normal")
+
+        tk.Label(tool_fields, text="Machine:").grid(row=2, column=0)
+        machine_combobox = ttk.Combobox(tool_fields, values=machines_list)
+        machine_combobox.grid(row=2, column=1)
+        machine_combobox.configure(state="normal")
+
+        tk.Label(tool_fields, text="Tool Number:").grid(row=3, column=0)
+        tool_number_combobox = ttk.Combobox(tool_fields, values=tool_numbers)
+        tool_number_combobox.grid(row=3, column=1)
+        tool_number_combobox.configure(state="normal")
+
+        tool_fields.grid(row=0, column=0, padx=5, pady=5, sticky='nw')
+
+        # Part Data Button
+
+        part_data_button = tk.Button(
+            self,
+            text="Part Data",
+            command=lambda: (show_field(self.frames[1], self.frames), update_data_name("Part Data"))
+        )
+
+        part_data_button.grid(row=2, column=0, padx=5, pady=5, sticky='nw')
+
+        # Part Data Fields
+        part_fields = tk.Frame(part_data_frame)
+        tk.Label(part_fields, text="Part Number:").grid(row=0, column=0)
+        part_number_combobox_2 = ttk.Combobox(part_fields, values=part_numbers)
+        part_number_combobox_2.grid(row=0, column=1)
+        part_number_combobox_2.configure(state="normal")
+
+        part_fields.grid(row=0, column=0, padx=5, pady=5, sticky='nw')
+
+        # Operation Data Button
+
+        operation_data_button = tk.Button(
+            self,
+            text="Operation Data",
+            command=lambda: (show_field(self.frames[2], self.frames), update_data_name("Operation Data"))
+        )
+
+        operation_data_button.grid(row=3, column=0, padx=5, pady=5, sticky='nw')
+
+        # Operation Data Fields
+        operation_fields = tk.Frame(operation_data_frame)
+        tk.Label(operation_fields, text="Part Number:").grid(row=0, column=0)
+        part_number_combobox_3 = ttk.Combobox(operation_fields, values=part_numbers)
+        part_number_combobox_3.grid(row=0, column=1)
+        part_number_combobox_3.configure(state="normal")
+
+        tk.Label(operation_fields, text="Operation Number:").grid(row=1, column=0)
+        op_number_combobox_2 = ttk.Combobox(operation_fields, values=op_numbers)
+        op_number_combobox_2.grid(row=1, column=1)
+        op_number_combobox_2.configure(state="normal")
+
+        operation_fields.grid(row=0, column=0, padx=5, pady=5, sticky='nw')
+
+        # Machine Data Button
+
+        machine_data_button = tk.Button(
+            self,
+            text="Machine Data",
+            command=lambda: (show_field(self.frames[3], self.frames), update_data_name("Machine Data"))
+        )
+
+        machine_data_button.grid(row=4, column=0, padx=5, pady=5, sticky='nw')
+
+        # Machine Data Fields
+        machine_fields = tk.Frame(machine_data_frame)
+        tk.Label(machine_fields, text="Select Machine:").grid(row=0, column=0)
+        machine_combobox_2 = ttk.Combobox(machine_fields, values=machines_list)
+        machine_combobox_2.grid(row=0, column=1)
+        machine_combobox_2.configure(state="normal")
+
+        machine_fields.grid(row=0, column=0, padx=5, pady=5, sticky='nw')
+
+        # Operator Data Button
+
+        operator_data_button = tk.Button(
+            self,
+            text="Operator Data",
+            command=lambda: (show_field(self.frames[4], self.frames), update_data_name("Operator Data"))
+        )
+        operator_data_button.grid(row=5, column=0, padx=5, pady=5, sticky='nw')
+
+        # Operator Data Fields
+
+        operator_fields = tk.Frame(operator_data_frame)
+        tk.Label(operator_fields, text="Operator Name:").grid(row=0, column=0)
+        tk.Entry(operator_fields).grid(row=0, column=1)
+
+        operator_fields.grid(row=0, column=0, padx=5, pady=5, sticky='nw')
+
+        # Data Search Button
+
+        submit_button = tk.Button(self, text="Submit", command=data_search)
+        submit_button.grid(row=10, column=0, padx=5, pady=5, sticky='nw')
+
+        # Used to only show the currently selected data fields
+        for frame in self.frames:
+            frame.grid_remove()
+
+
+class AdminLoginScreen(tk.Frame):
+    def __init__(self, parent, controller):
+        super().__init__(parent)
+
+        def admin_login():
+
+            admin_id = admin_id_entry.get()
+
+            if admin_id == "admin0100":
+
+                controller.show_frame(DataAnalysisScreen)
+
+                # Clear Entry Fields
+                admin_id_entry.delete(0, tk.END)
+
+            else:
+                messagebox.showerror(
+                    title="ERROR: Not Admin",
+                    message="The entered ID is not associated with any stored admin ID.\n"
+                            "Contact System Administrator for further assistance."
+                )
+
+                return
+
+        # Admin Login
+        admin_id_label = tk.Label(self, text="Admin ID:")
+        admin_id_label.pack()
+        admin_id_entry = tk.Entry(self, show="*")
+        admin_id_entry.pack()
+
+        # Login Button
+        login_button = tk.Button(self, text="Login", command=admin_login)
+        login_button.pack()
+
+        # Back To Login Screen
+        back_button = tk.Button(self, text="Back", command=lambda: controller.show_frame(LoginScreen))
+        back_button.pack()
+
 
 # DATABASE CLEAR !!!
 # clear_database("employee.db", "employees")
