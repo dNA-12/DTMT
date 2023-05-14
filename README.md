@@ -1,4 +1,6 @@
 # DTMT
+# D - Damaged T - Tooling M - Management and T - Tracking 
+
 An application created to manage and track damaged tooling within a machining faucility. Damaged Tooling Management and Tracking. The goal of this application is create a database to track damaged tooling within a machining facility and send valuable data and insight on said tooling to an engineering department for further investigation. 
 UNDER DEVELOPMENT.
 
