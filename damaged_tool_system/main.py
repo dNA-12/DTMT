@@ -3,7 +3,17 @@ import os
 import datetime
 from tkinter import messagebox, ttk
 from emp_database import add_employee_db, create_employees_table, check_for_emp, fetch_employee_name
-from tool_database import add_tool_db, create_tool_table, tool_analytics_search
+
+from tool_database import (
+    add_tool_db,
+    create_tool_table,
+    tool_analytics_search,
+    part_analytics_search,
+    operation_analytics_search,
+    machine_analytics_search,
+    operator_analytics_search
+)
+
 from utils import fetch_machines, fetch_all_records, clear_database, create_searchable_dropdown
 
 # Create Database tables
@@ -22,9 +32,11 @@ class MainApp(tk.Tk):
         self.state("zoomed")
 
         container = tk.Frame(self)
-        container.pack(side="top", fill="both", expand=True)
-        # style = ttk.Style(self)
-        # style.theme_use("clam")
+        # Replace the pack method with grid
+        container.grid(sticky='nsew')
+
+        self.columnconfigure(0, weight=1)  # Allow column to expand
+        self.rowconfigure(0, weight=1)  # Allow row to expand
 
         self.frames = {}
         self.current_user = []
@@ -46,10 +58,6 @@ class MainApp(tk.Tk):
 class LoginScreen(tk.Frame):
     def __init__(self, parent, controller):
         super().__init__(parent)
-
-        # Track the current user in the login screen
-
-        current_user = []
 
         # Create function to submit login entry fields
 
@@ -474,35 +482,520 @@ class DataAnalysisScreen(tk.Frame):
     def __init__(self, parent, controller):
         super().__init__(parent)
 
+        # Create a frame for the statistics
+
+        statistics_label = tk.Label(self, text="Statistics", font=("Helvetica", 12, "bold"))
+
+        self.statistics_frame = ttk.LabelFrame(
+            self, borderwidth=2,
+            labelwidget=statistics_label
+        )
+
+        self.statistics_frame.grid(row=13, column=0, padx=5, pady=5, sticky='nw')
+
+        # Initially hide the statistics frame
+
+        self.statistics_frame.grid_remove()
+
+        # Create all the GUI Statistic Labels
+
+        self.tool_number_result = tk.Label(self.statistics_frame, text="")
+        self.tool_number_result.grid(row=0, column=0, sticky='nw')
+
+        self.part_number_result = tk.Label(self.statistics_frame, text="")
+        self.part_number_result.grid(row=1, column=0, sticky='nw')
+
+        self.operation_number_result = tk.Label(self.statistics_frame, text="")
+        self.operation_number_result.grid(row=2, column=0, sticky='nw')
+
+        self.machine_result = tk.Label(self.statistics_frame, text="")
+        self.machine_result.grid(row=3, column=0, sticky='nw')
+
+        self.description_result = tk.Label(self.statistics_frame, text="")
+        self.description_result.grid(row=4, column=0, sticky='nw')
+
+        self.operator_result = tk.Label(self.statistics_frame, text="")
+        self.operator_result.grid(row=5, column=0, sticky='nw')
+
+        self.total_incidents = tk.Label(self.statistics_frame, text="")
+        self.total_incidents.grid(row=6, column=0, sticky='nw')
+
+        self.date_result = tk.Label(self.statistics_frame, text="")
+        self.date_result.grid(row=7, column=0, sticky='nw')
+
+        # Store the results of the query based on data types
+
+        self.data_search_results = []
+
         # Data Search Function
 
         def data_search():
 
+            # Controller for next and prev buttons
+
+            self.incident_indexer = 0
+
+            def next_incident_button():
+
+                if self.data_search_results and self.incident_indexer < len(self.data_search_results) - 1:
+
+                    self.incident_indexer += 1
+
+                    self.tool_number_result.config(
+                        text=f"Tool Number: {self.data_search_results[self.incident_indexer][0]}"
+                    )
+
+                    self.part_number_result.config(
+                        text=f"Part Number: {self.data_search_results[self.incident_indexer][1]}"
+                    )
+
+                    self.operation_number_result.config(
+                        text=f"Operation Number: {self.data_search_results[self.incident_indexer][2]}"
+                    )
+
+                    self.machine_result.config(
+                        text=f"Machine: {self.data_search_results[self.incident_indexer][4]}"
+                    )
+
+                    self.description_result.config(
+                        text=f"Incident Description: {self.data_search_results[self.incident_indexer][3]}"
+                    )
+
+                    self.operator_result.config(
+                        text=f"Operator: {self.data_search_results[self.incident_indexer][5]}"
+                    )
+
+                    self.date_result.config(
+                        text=f"Date of Incident: {self.data_search_results[self.incident_indexer][6]}"
+                    )
+
+                    self.update_idletasks()
+
+                else:
+                    return
+
+            def prev_incident_button():
+
+                if self.data_search_results and self.incident_indexer > 0:
+
+                    self.incident_indexer -= 1
+
+                    self.tool_number_result.config(
+                        text=f"Tool Number: {self.data_search_results[self.incident_indexer][0]}"
+                    )
+
+                    self.part_number_result.config(
+                        text=f"Part Number: {self.data_search_results[self.incident_indexer][1]}"
+                    )
+
+                    self.operation_number_result.config(
+                        text=f"Operation Number: {self.data_search_results[self.incident_indexer][2]}"
+                    )
+
+                    self.machine_result.config(
+                        text=f"Machine: {self.data_search_results[self.incident_indexer][4]}"
+                    )
+
+                    self.description_result.config(
+                        text=f"Incident Description: {self.data_search_results[self.incident_indexer][3]}"
+                    )
+
+                    self.operator_result.config(
+                        text=f"Operator: {self.data_search_results[self.incident_indexer][5]}"
+                    )
+
+                    self.date_result.config(
+                        text=f"Date of Incident: {self.data_search_results[self.incident_indexer][6]}"
+                    )
+
+                    self.update_idletasks()
+
+                else:
+                    return
+
+            # Tool Data Search
+
             if self.data_name == "Tool Data":
-                fetch_tool_data()
 
-            else:
-                messagebox.showerror(
-                    title="ERROR: Data Search",
-                    message="There was an issue searching for the requested data,"
-                            " please make sure the required fields are filled in correctly."
-                )
+                try:
 
-        # Create function to fetch desired data requirements for TOOL DATA
+                    part_num = part_number_combobox.get()
+                    op_num = op_number_combobox.get()
+                    machine = machine_combobox.get()
+                    tool_num = tool_number_combobox.get()
 
-        def fetch_tool_data():
+                    op_num = int(op_num)
+                    tool_num = int(tool_num)
 
-            part_num = part_number_combobox.get()
-            op_num = op_number_combobox.get()
-            machine = machine_combobox.get()
-            tool_num = tool_number_combobox.get()
+                    self.data_search_results = tool_analytics_search(part_num, op_num, machine, tool_num)
+                    self.data_search_results = self.data_search_results[::-1]
 
-            print(f"Part Number: {part_num}")
-            print(f"Operation Number: {op_num}")
-            print(f"Machine: {machine}")
-            print(f"Tool Number: {tool_num}")
+                    # Create Statistics GUI
 
-            tool_analytics_search(part_num, op_num, machine, tool_num)
+                    self.statistics_frame.grid()
+
+                    self.tool_number_result.config(
+                        text=f"Tool Number: {self.data_search_results[self.incident_indexer][0]}"
+                    )
+
+                    self.part_number_result.config(
+                        text=f"Part Number: {self.data_search_results[self.incident_indexer][1]}"
+                    )
+
+                    self.operation_number_result.config(
+                        text=f"Operation Number: {self.data_search_results[self.incident_indexer][2]}"
+                    )
+
+                    self.machine_result.config(
+                        text=f"Machine: {self.data_search_results[self.incident_indexer][4]}"
+                    )
+
+                    self.description_result.config(
+                        text=f"Incident Description: {self.data_search_results[self.incident_indexer][3]}"
+                    )
+
+                    self.operator_result.config(
+                        text=f"Operator: {self.data_search_results[self.incident_indexer][5]}"
+                    )
+
+                    self.total_incidents.config(text=f"Total Incidents: {len(self.data_search_results)}")
+
+                    self.date_result.config(
+                        text=f"Date of Incident: {self.data_search_results[self.incident_indexer][6]}"
+                    )
+
+                    # Next Incident Button
+
+                    next_button = tk.Button(
+                        self.statistics_frame,
+                        text=">>",
+                        command=lambda: next_incident_button()
+                    )
+
+                    next_button.grid(row=8, column=1, sticky='nw')
+
+                    # Previous Incident Button
+
+                    prev_button = tk.Button(
+                        self.statistics_frame,
+                        text="<<",
+                        command= lambda: prev_incident_button()
+                    )
+
+                    prev_button.grid(row=8, column=0, sticky='nw')
+
+                    self.update_idletasks()
+
+                except IndexError:
+
+                    messagebox.showerror(
+                        title="ERROR: Database Search",
+                        message="The current search inquery was not found in the database. If this inquery should exist"
+                                " in the database, contact the System Administrator."
+                    )
+                    return
+
+            # Part Data Search
+
+            if self.data_name == "Part Data":
+
+                try:
+
+                    part_num = part_number_combobox_2.get()
+                    self.data_search_results = part_analytics_search(part_num)
+                    self.data_search_results = self.data_search_results[::-1]
+
+                    # Create Statistics GUI
+
+                    self.statistics_frame.grid()
+
+                    self.tool_number_result.config(
+                        text=f"Tool Number: {self.data_search_results[self.incident_indexer][0]}"
+                    )
+
+                    self.part_number_result.config(
+                        text=f"Part Number: {self.data_search_results[self.incident_indexer][1]}"
+                    )
+
+                    self.operation_number_result.config(
+                        text=f"Operation Number: {self.data_search_results[self.incident_indexer][2]}"
+                    )
+
+                    self.machine_result.config(
+                        text=f"Machine: {self.data_search_results[self.incident_indexer][4]}"
+                    )
+
+                    self.description_result.config(
+                        text=f"Incident Description: {self.data_search_results[self.incident_indexer][3]}"
+                    )
+
+                    self.operator_result.config(
+                        text=f"Operator: {self.data_search_results[self.incident_indexer][5]}"
+                    )
+
+                    self.total_incidents.config(text=f"Total Incidents: {len(self.data_search_results)}")
+
+                    self.date_result.config(
+                        text=f"Date of Incident: {self.data_search_results[self.incident_indexer][6]}"
+                    )
+
+                    # Next Incident Button
+
+                    next_button = tk.Button(
+                        self.statistics_frame,
+                        text=">>",
+                        command=lambda: next_incident_button()
+                    )
+
+                    next_button.grid(row=8, column=1, sticky='nw')
+
+                    # Previous Incident Button
+
+                    prev_button = tk.Button(
+                        self.statistics_frame,
+                        text="<<",
+                        command= lambda: prev_incident_button()
+                    )
+
+                    prev_button.grid(row=8, column=0, sticky='nw')
+
+                    self.update_idletasks()
+
+                except IndexError:
+
+                    messagebox.showerror(
+                        title="ERROR: Database Search",
+                        message="The current search inquery was not found in the database. If this inquery should exist"
+                                " in the database, contact the System Administrator."
+                    )
+                    return
+
+            # Operation Data Search
+
+            if self.data_name == "Operation Data":
+
+                try:
+
+                    part_num = part_number_combobox_3.get()
+                    op_num = op_number_combobox_2.get()
+
+                    self.data_search_results = operation_analytics_search(part_num, op_num)
+                    self.data_search_results = self.data_search_results[::-1]
+
+                    # Create Statistics GUI
+
+                    self.statistics_frame.grid()
+
+                    self.tool_number_result.config(
+                        text=f"Tool Number: {self.data_search_results[self.incident_indexer][0]}"
+                    )
+
+                    self.part_number_result.config(
+                        text=f"Part Number: {self.data_search_results[self.incident_indexer][1]}"
+                    )
+
+                    self.operation_number_result.config(
+                        text=f"Operation Number: {self.data_search_results[self.incident_indexer][2]}"
+                    )
+
+                    self.machine_result.config(
+                        text=f"Machine: {self.data_search_results[self.incident_indexer][4]}"
+                    )
+
+                    self.description_result.config(
+                        text=f"Incident Description: {self.data_search_results[self.incident_indexer][3]}"
+                    )
+
+                    self.operator_result.config(
+                        text=f"Operator: {self.data_search_results[self.incident_indexer][5]}"
+                    )
+
+                    self.total_incidents.config(text=f"Total Incidents: {len(self.data_search_results)}")
+
+                    self.date_result.config(
+                        text=f"Date of Incident: {self.data_search_results[self.incident_indexer][6]}"
+                    )
+
+                    # Next Incident Button
+
+                    next_button = tk.Button(
+                        self.statistics_frame,
+                        text=">>",
+                        command=lambda: next_incident_button()
+                    )
+
+                    next_button.grid(row=8, column=1, sticky='nw')
+
+                    # Previous Incident Button
+
+                    prev_button = tk.Button(
+                        self.statistics_frame,
+                        text="<<",
+                        command=lambda: prev_incident_button()
+                    )
+
+                    prev_button.grid(row=8, column=0, sticky='nw')
+
+                    self.update_idletasks()
+
+                except IndexError:
+
+                    messagebox.showerror(
+                        title="ERROR: Database Search",
+                        message="The current search inquery was not found in the database. If this inquery should exist"
+                                " in the database, contact the System Administrator."
+                    )
+                    return
+
+            # Machine Data Search
+
+            if self.data_name == "Machine Data":
+
+                try:
+
+                    machine = machine_combobox_2.get()
+                    self.data_search_results = machine_analytics_search(machine)
+                    self.data_search_results = self.data_search_results[::-1]
+
+                    # Create Statistics GUI
+
+                    self.statistics_frame.grid()
+
+                    self.tool_number_result.config(
+                        text=f"Tool Number: {self.data_search_results[self.incident_indexer][0]}"
+                    )
+
+                    self.part_number_result.config(
+                        text=f"Part Number: {self.data_search_results[self.incident_indexer][1]}"
+                    )
+
+                    self.operation_number_result.config(
+                        text=f"Operation Number: {self.data_search_results[self.incident_indexer][2]}"
+                    )
+
+                    self.machine_result.config(
+                        text=f"Machine: {self.data_search_results[self.incident_indexer][4]}"
+                    )
+
+                    self.description_result.config(
+                        text=f"Incident Description: {self.data_search_results[self.incident_indexer][3]}"
+                    )
+
+                    self.operator_result.config(
+                        text=f"Operator: {self.data_search_results[self.incident_indexer][5]}"
+                    )
+
+                    self.total_incidents.config(text=f"Total Incidents: {len(self.data_search_results)}")
+
+                    self.date_result.config(
+                        text=f"Date of Incident: {self.data_search_results[self.incident_indexer][6]}"
+                    )
+
+                    # Next Incident Button
+
+                    next_button = tk.Button(
+                        self.statistics_frame,
+                        text=">>",
+                        command=lambda: next_incident_button()
+                    )
+
+                    next_button.grid(row=8, column=1, sticky='nw')
+
+                    # Previous Incident Button
+
+                    prev_button = tk.Button(
+                        self.statistics_frame,
+                        text="<<",
+                        command=lambda: prev_incident_button()
+                    )
+
+                    prev_button.grid(row=8, column=0, sticky='nw')
+
+                    self.update_idletasks()
+
+                except IndexError:
+
+                    messagebox.showerror(
+                        title="ERROR: Database Search",
+                        message="The current search inquery was not found in the database. If this inquery should exist"
+                                " in the database, contact the System Administrator."
+                    )
+                    return
+
+            # Operator Data Search
+
+            if self.data_name == "Operator Data":
+
+                try:
+
+                    operator = operator_name.get()
+                    self.data_search_results = operator_analytics_search(operator)
+                    self.data_search_results = self.data_search_results[::-1]
+
+                    # Create Statistics GUI
+
+                    self.statistics_frame.grid()
+
+                    self.tool_number_result.config(
+                        text=f"Tool Number: {self.data_search_results[self.incident_indexer][0]}"
+                    )
+
+                    self.part_number_result.config(
+                        text=f"Part Number: {self.data_search_results[self.incident_indexer][1]}"
+                    )
+
+                    self.operation_number_result.config(
+                        text=f"Operation Number: {self.data_search_results[self.incident_indexer][2]}"
+                    )
+
+                    self.machine_result.config(
+                        text=f"Machine: {self.data_search_results[self.incident_indexer][4]}"
+                    )
+
+                    self.description_result.config(
+                        text=f"Incident Description: {self.data_search_results[self.incident_indexer][3]}"
+                    )
+
+                    self.operator_result.config(
+                        text=f"Operator: {self.data_search_results[self.incident_indexer][5]}"
+                    )
+
+                    self.total_incidents.config(text=f"Total Incidents: {len(self.data_search_results)}")
+
+                    self.date_result.config(
+                        text=f"Date of Incident: {self.data_search_results[self.incident_indexer][6]}"
+                    )
+
+                    # Next Incident Button
+
+                    next_button = tk.Button(
+                        self.statistics_frame,
+                        text=">>",
+                        command=lambda: next_incident_button()
+                    )
+
+                    next_button.grid(row=8, column=1, sticky='nw')
+
+                    # Previous Incident Button
+
+                    prev_button = tk.Button(
+                        self.statistics_frame,
+                        text="<<",
+                        command=lambda: prev_incident_button()
+                    )
+
+                    prev_button.grid(row=8, column=0, sticky='nw')
+
+                    self.update_idletasks()
+
+                except IndexError:
+
+                    messagebox.showerror(
+                        title="ERROR: Database Search",
+                        message="The current search inquery was not found in the database. If this inquery should exist"
+                                " in the database, contact the System Administrator."
+                    )
+                    return
 
         # Create a function to hide and show required fields
 
@@ -514,7 +1007,7 @@ class DataAnalysisScreen(tk.Frame):
 
         # Create a function to update the required fields
 
-        self.data_name = "Selected Data Type"
+        self.data_name = "Selected Data Type (select a data type above)"
 
         def update_data_name(new_data_name):
             self.data_name = new_data_name
@@ -565,8 +1058,6 @@ class DataAnalysisScreen(tk.Frame):
         data_fields_label = tk.Label(self, text=f"Enter Required Fields for {self.data_name}",
                                      font=("Helvetica", 12, "bold"))
         data_fields_label.grid(row=7, column=0, padx=5, pady=5, sticky='nw')
-
-        # Create Data Select Buttons and Fields
 
         # Tool Data Button
 
@@ -677,14 +1168,16 @@ class DataAnalysisScreen(tk.Frame):
 
         operator_fields = tk.Frame(operator_data_frame)
         tk.Label(operator_fields, text="Operator Name:").grid(row=0, column=0)
-        tk.Entry(operator_fields).grid(row=0, column=1)
+        operator_name = tk.Entry(operator_fields)
+        operator_name.grid(row=0, column=1)
+
 
         operator_fields.grid(row=0, column=0, padx=5, pady=5, sticky='nw')
 
         # Data Search Button
 
-        submit_button = tk.Button(self, text="Submit", command=data_search)
-        submit_button.grid(row=10, column=0, padx=5, pady=5, sticky='nw')
+        search_button = tk.Button(self, text="Search", command=data_search)
+        search_button.grid(row=10, column=0, padx=5, pady=5, sticky='nw')
 
         # Used to only show the currently selected data fields
         for frame in self.frames:
